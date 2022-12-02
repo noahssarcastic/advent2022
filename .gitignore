@@ -1,0 +1,4 @@
+go.work
+
+.vscode/*
+!.vscode/settings.json
