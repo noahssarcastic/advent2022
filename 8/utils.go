@@ -2,7 +2,7 @@ package main
 
 import "sort"
 
-// Create a sequential int range between start (inclusive) and end (exclusive).
+// Create a sequential int range between start and end-1 (inclusive).
 func createRange(start, end int) []int {
 	newRange := make([]int, 0, end-start)
 	for i := start; i < end; i++ {
@@ -26,7 +26,8 @@ func height(matrix [][]int) int {
 	return len(matrix)
 }
 
-func every(slice []int, check func(i int) bool) bool {
+// Return true if all element in slice passes the check.
+func all(slice []int, check func(i int) bool) bool {
 	for _, i := range slice {
 		if !check(i) {
 			return false
@@ -42,6 +43,7 @@ func max(a, b int) int {
 	return b
 }
 
+// Call some function on every tree in the forrest.
 func forEachTree(forrest [][]int, do func(x, y int)) {
 	for y, row := range forrest {
 		for x := range row {
