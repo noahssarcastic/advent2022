@@ -45,13 +45,14 @@ const (
 )
 
 type Node struct {
-	name           string
-	nodeType, size int
-	children       []*Node
-	parent         *Node
+	name     string
+	nodeType int
+	size     int
+	children []*Node
+	parent   *Node
 }
 
-func child(node *Node, childName string) *Node {
+func getChild(node *Node, childName string) *Node {
 	for _, child := range node.children {
 		if child.name == childName {
 			return child
@@ -62,13 +63,12 @@ func child(node *Node, childName string) *Node {
 
 func cd(currentNode *Node, rootNode *Node, exec Execution) *Node {
 	if exec.arguments[0] == ".." {
-		currentNode = currentNode.parent
+		return currentNode.parent
 	} else if exec.arguments[0] == "/" {
-		currentNode = rootNode
+		return rootNode
 	} else {
-		currentNode = child(currentNode, exec.arguments[0])
+		return getChild(currentNode, exec.arguments[0])
 	}
-	return currentNode
 }
 
 func ls(currentNode *Node, exec Execution) {
@@ -85,7 +85,6 @@ func ls(currentNode *Node, exec Execution) {
 		currentNode.children = append(
 			currentNode.children,
 			newNode)
-
 	}
 }
 
@@ -102,11 +101,11 @@ func createFileSystem(execs []Execution) *Node {
 	return root
 }
 
-func traverse(node *Node) {
+func calculateDirSizes(node *Node) {
 	totalSize := 0
 	for _, child := range node.children {
 		if child.size < 0 {
-			traverse(child)
+			calculateDirSizes(child)
 		}
 		totalSize += child.size
 	}
@@ -115,30 +114,42 @@ func traverse(node *Node) {
 
 // Search tree
 
-func findCandidateDirectories(node *Node) int {
+func countDirsUnder(node *Node) int {
+	if node.nodeType == file {
+		return 0
+	}
+
 	sum := 0
 	for _, child := range node.children {
-		sum += findCandidateDirectories(child)
+		sum += countDirsUnder(child)
 	}
-	if node.nodeType == directory && node.size <= 100000 {
+
+	if node.size <= 100000 {
 		sum += node.size
 	}
 	return sum
 }
 
-func findSmallestToDelete(node *Node, requiredSpace int) int {
-	smallest := math.MaxInt
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func smallestToDelete(node *Node, requiredSpace int) int {
+	// Base case; files are leaf nodes
 	if node.nodeType == file {
-		return smallest
+		return math.MaxInt
 	}
+
+	smallest := math.MaxInt
 	for _, child := range node.children {
-		childSmallest := findSmallestToDelete(child, requiredSpace)
-		if childSmallest < smallest {
-			smallest = childSmallest
-		}
+		smallest = min(smallest, smallestToDelete(child, requiredSpace))
 	}
+
 	if requiredSpace <= node.size && node.size < smallest {
-		smallest = node.size
+		return node.size
 	}
 	return smallest
 }
@@ -148,10 +159,17 @@ func main() {
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
 	execs := parseOutput(scanner)
+
 	rootNode := createFileSystem(execs)
-	traverse(rootNode)
-	fmt.Printf("The sum of dirs with a size <= 100k is %v\n", findCandidateDirectories(rootNode))
+	calculateDirSizes(rootNode)
+
+	fmt.Printf(
+		"The sum of dirs with a size <= 100k is %v\n",
+		countDirsUnder(rootNode))
+
 	remainingSpace := 70000000 - rootNode.size
 	requiredSpace := 30000000 - remainingSpace
-	fmt.Printf("The smallest dirs eligible for deletion is %v\n", findSmallestToDelete(rootNode, requiredSpace))
+	fmt.Printf(
+		"The smallest dir eligible for deletion is %v\n",
+		smallestToDelete(rootNode, requiredSpace))
 }
