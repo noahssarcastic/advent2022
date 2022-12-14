@@ -10,59 +10,75 @@ import (
 )
 
 type Knot struct {
-	x, y int
+	x, y float64
+}
+
+func copyKnot(k *Knot) *Knot {
+	return &Knot{k.x, k.y}
 }
 
 type Direction struct {
-	xOffset, yOffset int
+	xOffset, yOffset float64
 }
 
-var directions = map[byte]Direction{
+func moveKnot(k *Knot, direction Direction) {
+	k.x += direction.xOffset
+	k.y += direction.yOffset
+}
+
+func touching(k1, k2 *Knot) bool {
+	touch := math.Abs(float64(k1.x-k2.x)) <= 1 &&
+		math.Abs(float64(k1.y-k2.y)) <= 1
+	return touch
+}
+
+func distance(k1, k2 *Knot) float64 {
+	return math.Sqrt(math.Pow(k1.x-k2.x, 2) + math.Pow(k1.y-k2.y, 2))
+}
+
+func moveFollower(head, tail *Knot, direction Direction) {
+	if touching(head, tail) {
+		return
+	}
+	for x := -1; x <= 1; x++ {
+		for y := -1; y <= 1; y++ {
+			direction := Direction{float64(x), float64(y)}
+			copy := copyKnot(tail)
+			moveKnot(copy, direction)
+			if distance(copy, head) == 1 {
+				moveKnot(tail, direction)
+				return
+			}
+		}
+	}
+	diagonal := Direction{
+		math.Copysign(1, head.x-tail.x),
+		math.Copysign(1, head.y-tail.y),
+	}
+	moveKnot(tail, diagonal)
+}
+
+func moveRope(knots []Knot, direction Direction, steps int, visits map[string]int) {
+	for i := 0; i < steps; i++ {
+		moveKnot(&knots[0], direction)
+		for k := 1; k < len(knots); k++ {
+			followerDirection := direction
+			moveFollower(&knots[k-1], &knots[k], followerDirection)
+		}
+		visits[getKey(&knots[len(knots)-1])] += 1
+
+		// Debug
+		// printBoardState(knots)
+		// fmt.Print("Press 'Enter' to continue...")
+		// bufio.NewReader(os.Stdin).ReadBytes('\n')
+	}
+}
+
+var inputs = map[byte]Direction{
 	'U': {0, 1},
 	'R': {1, 0},
 	'D': {0, -1},
 	'L': {-1, 0},
-}
-
-func moveKnot(k *Knot, direction byte) {
-	k.x += directions[direction].xOffset
-	k.y += directions[direction].yOffset
-}
-
-func moveKnotTo(k *Knot, x, y int) {
-	k.x = x
-	k.y = y
-}
-
-func touching(k1, k2 *Knot) bool {
-	return math.Abs(float64(k1.x-k2.x)) <= 1 &&
-		math.Abs(float64(k1.y-k2.y)) <= 1
-}
-
-func move(visits map[string]int, head, tail *Knot, direction byte, steps int) {
-	printPositions(head, tail)
-	fmt.Println()
-
-	for i := 0; i < steps; i++ {
-		oldHead := Knot{head.x, head.y}
-		moveKnot(head, direction)
-		if touching(head, tail) {
-			fmt.Println("still touching; don't move tail")
-		} else if head.x == tail.x || head.y == tail.y {
-			fmt.Println("same row/col; move in same direction")
-			moveKnot(tail, direction)
-		} else {
-			fmt.Println("head too far; diagonal move")
-			moveKnotTo(tail, oldHead.x, oldHead.y)
-		}
-		visits[getKey(tail)] += 1
-		printPositions(head, tail)
-	}
-	fmt.Println()
-}
-
-func printPositions(head, tail *Knot) {
-	fmt.Printf("H(%v,%v) T(%v,%v)\n", head.x, head.y, tail.x, tail.y)
 }
 
 func getKey(k *Knot) string {
@@ -73,20 +89,18 @@ func main() {
 	f, _ := os.Open("input2.txt")
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
-
-	head := Knot{0, 0}
-	tail := Knot{0, 0}
+	numKnots := 10
+	knots := make([]Knot, 0)
+	for i := 0; i < numKnots; i++ {
+		knots = append(knots, Knot{0, 0})
+	}
 	visits := map[string]int{"0:0": 1}
-
 	for scanner.Scan() {
 		line := scanner.Text()
 		update := strings.Split(line, " ")
-		direction := update[0][0]
+		direction := inputs[update[0][0]]
 		steps, _ := strconv.Atoi(update[1])
-		fmt.Printf("Move %v, %v times\n", directions[direction], steps)
-		move(visits, &head, &tail, direction, steps)
+		moveRope(knots, direction, steps, visits)
 	}
-
-	printPositions(&head, &tail)
 	fmt.Println(len(visits))
 }
