@@ -20,9 +20,14 @@ func NewExecution() *Execution {
 		register: map[string]float64{"x": 1}}
 }
 
+// Run at the beginning of an instruction execution.
 func (exec *Execution) start() { exec.instruction.start(exec) }
-func (exec *Execution) each()  { exec.instruction.each(exec) }
-func (exec *Execution) stop()  { exec.instruction.stop(exec) }
+
+// Run every cycle an instruction is active.
+func (exec *Execution) each() { exec.instruction.each(exec) }
+
+// Run at the end of an instruction execution.
+func (exec *Execution) stop() { exec.instruction.stop(exec) }
 
 func (exec *Execution) setInstruction(line string) {
 	instructionSet := map[string]Instruction{
@@ -54,6 +59,16 @@ func (n AddX) stop(exec *Execution) {
 	exec.register["x"] += x
 }
 
+func drawPixel(cycle int, exec *Execution) string {
+	drawCursor := float64((cycle - 1) % 40)
+	spritePos := exec.register["x"]
+	if spritePos-1 <= drawCursor && drawCursor <= spritePos+1 {
+		return "#"
+	} else {
+		return "."
+	}
+}
+
 func main() {
 	f, _ := os.Open("input3.txt")
 	defer f.Close()
@@ -63,13 +78,15 @@ func main() {
 		instructions = append(instructions, scanner.Text())
 	}
 
-	// Run program
 	exec := NewExecution()
-	counter := 0.0
+	crtLine := ""
 	for cycle, i := 1, 0; i < len(instructions); cycle++ {
-		if (cycle-20)%40 == 0 {
-			counter += float64(cycle) * exec.register["x"]
+		crtLine += drawPixel(cycle, exec)
+		if len(crtLine) >= 40 {
+			fmt.Println(crtLine)
+			crtLine = ""
 		}
+
 		if exec.cyclesLeft < 1 {
 			exec.setInstruction(instructions[i])
 			exec.start()
@@ -80,5 +97,4 @@ func main() {
 			i++
 		}
 	}
-	fmt.Println(counter)
 }
