@@ -68,9 +68,9 @@ func moveRope(knots []Knot, direction Direction, steps int, visits map[string]in
 		visits[getKey(&knots[len(knots)-1])] += 1
 
 		// Debug
-		// printBoardState(knots)
-		// fmt.Print("Press 'Enter' to continue...")
-		// bufio.NewReader(os.Stdin).ReadBytes('\n')
+		printBoardState(knots)
+		fmt.Print("Press 'Enter' to continue...")
+		bufio.NewReader(os.Stdin).ReadBytes('\n')
 	}
 }
 
@@ -86,7 +86,7 @@ func getKey(k *Knot) string {
 }
 
 func main() {
-	f, _ := os.Open("input2.txt")
+	f, _ := os.Open("input3.txt")
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
 	numKnots := 10
