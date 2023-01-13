@@ -8,6 +8,11 @@ import (
 	"github.com/noahssarcastic/advent2022/12/hmap"
 )
 
+type Map struct {
+	hm         hmap.Heightmap
+	start, end *coord.Coord
+}
+
 func getMoves(hm hmap.Heightmap, c *coord.Coord) (moves []coord.Coord) {
 	if c.X() > 0 {
 		moves = append(moves, *coord.Add(c, coord.New(-1, 0)))
@@ -26,28 +31,20 @@ func getMoves(hm hmap.Heightmap, c *coord.Coord) (moves []coord.Coord) {
 
 // Calculate the change in elevation between two coordinates
 func getGrade(hm hmap.Heightmap, current, next *coord.Coord) int {
-	return absInt(hm.Get(current) - hm.Get(next))
+	return hm.Get(next) - hm.Get(current)
 }
 
-func isRepeat(c *coord.Coord, history []coord.Coord) bool {
-	for _, h := range history {
-		if coord.Equal(c, &h) {
-			return true
-		}
-	}
-	return false
-}
-
-func recurse(hm hmap.Heightmap, start, end, current *coord.Coord, history []coord.Coord, moveCount int) int {
-	if coord.Equal(current, end) {
+func recurse(m *Map, current *coord.Coord, history []coord.Coord, moveCount int) int {
+	if coord.Equal(current, m.end) {
 		return moveCount
 	}
 	quickest := math.MaxInt
-	for _, m := range getMoves(hm, current) {
-		if getGrade(hm, current, &m) > 1 || isRepeat(&m, history) {
+	for _, move := range getMoves(m.hm, current) {
+		isRepeat := coord.Any(history, &move)
+		if getGrade(m.hm, current, &move) > 1 || isRepeat {
 			continue
 		}
-		pathLength := recurse(hm, start, end, &m, append(history, m), moveCount+1)
+		pathLength := recurse(m, &move, append(history, move), moveCount+1)
 		if pathLength < quickest {
 			quickest = pathLength
 		}
@@ -57,9 +54,9 @@ func recurse(hm hmap.Heightmap, start, end, current *coord.Coord, history []coor
 
 func main() {
 	inputFile := parseArgs()
-	hm, start, end := parseInput(inputFile)
-	current := start
+	m := parseInput(inputFile)
+	current := m.start
 	history := []coord.Coord{*current}
-	quickestPath := recurse(hm, start, end, current, history, 0)
+	quickestPath := recurse(m, current, history, 0)
 	fmt.Printf("The quickest path takes %v steps.\n", quickestPath)
 }
