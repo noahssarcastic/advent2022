@@ -34,3 +34,14 @@ func parseInput(inputFile string) (hm hmap.Heightmap, start, end coord.Coord) {
 	}
 	return hm, start, end
 }
+
+func findStarts(hm hmap.Heightmap) (starts []coord.Coord) {
+	for j := 0; j < hm.Height(); j++ {
+		for i := 0; i < hm.Width(); i++ {
+			if hm.Get(coord.Coord{i, j}) == int('a') {
+				starts = append(starts, coord.Coord{i, j})
+			}
+		}
+	}
+	return starts
+}

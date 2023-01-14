@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"sort"
 
 	coord "github.com/noahssarcastic/advent2022/12/coord"
+	"github.com/noahssarcastic/advent2022/12/hmap"
 )
 
 type FifoQueue struct {
@@ -37,13 +39,10 @@ func (q *FifoQueue) contains(c coord.Coord) bool {
 	return q.indexOf(c) >= 0
 }
 
-func main() {
-	inputFile := parseArgs()
-	hm, start, end := parseInput(inputFile)
-
+func shortestPath(hm hmap.Heightmap, start, end coord.Coord) int {
 	visited := &FifoQueue{}
 	queue := &FifoQueue{}
-	depth := []int{}
+	depth := make([]int, 0)
 
 	queue.enqueue(start)
 	visited.enqueue(start)
@@ -54,9 +53,8 @@ func main() {
 		index := visited.indexOf(current)
 		currentDepth := depth[index]
 
-		// If current coord is the final destination...
 		if coord.Equal(current, end) {
-			fmt.Println(currentDepth)
+			return currentDepth
 		}
 
 		for _, adj := range hm.Adjacent(current) {
@@ -68,6 +66,27 @@ func main() {
 				visited.enqueue(adj)
 				depth = append(depth, currentDepth+1)
 			}
+		}
+	}
+	return -1
+}
+
+func main() {
+	inputFile := parseArgs()
+	hm, _, end := parseInput(inputFile)
+	starts := findStarts(hm)
+
+	paths := make([]int, 0)
+	for _, s := range starts {
+		pathLength := shortestPath(hm, s, end)
+		paths = append(paths, pathLength)
+	}
+
+	sort.Ints(paths)
+	for _, el := range paths {
+		if el >= 0 {
+			fmt.Println(el)
+			break
 		}
 	}
 }
