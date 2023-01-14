@@ -2,27 +2,18 @@ package coord
 
 type Coord [2]int
 
-func New(x, y int) *Coord {
-	return &Coord{x, y}
+func New(x, y int) Coord {
+	return Coord{x, y}
 }
 
-func Equal(a, b *Coord) bool {
+func Equal(a, b Coord) bool {
 	return a.X() == b.X() && a.Y() == b.Y()
 }
 
-func (c *Coord) X() int { return c[0] }
+func (c Coord) X() int { return c[0] }
 
-func (c *Coord) Y() int { return c[1] }
+func (c Coord) Y() int { return c[1] }
 
-func Add(a, b *Coord) *Coord {
+func Add(a, b Coord) Coord {
 	return New(a.X()+b.X(), a.Y()+b.Y())
-}
-
-func Any(arr []Coord, c *Coord) bool {
-	for _, el := range arr {
-		if Equal(c, &el) {
-			return true
-		}
-	}
-	return false
 }

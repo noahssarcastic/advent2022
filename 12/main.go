@@ -2,61 +2,72 @@ package main
 
 import (
 	"fmt"
-	"math"
 
-	"github.com/noahssarcastic/advent2022/12/coord"
-	"github.com/noahssarcastic/advent2022/12/hmap"
+	coord "github.com/noahssarcastic/advent2022/12/coord"
 )
 
-type Map struct {
-	hm         hmap.Heightmap
-	start, end *coord.Coord
+type FifoQueue struct {
+	queue []coord.Coord
 }
 
-func getMoves(hm hmap.Heightmap, c *coord.Coord) (moves []coord.Coord) {
-	if c.X() > 0 {
-		moves = append(moves, *coord.Add(c, coord.New(-1, 0)))
-	}
-	if c.X() < hm.Width()-1 {
-		moves = append(moves, *coord.Add(c, coord.New(1, 0)))
-	}
-	if c.Y() > 0 {
-		moves = append(moves, *coord.Add(c, coord.New(0, -1)))
-	}
-	if c.Y() < hm.Height()-1 {
-		moves = append(moves, *coord.Add(c, coord.New(0, 1)))
-	}
-	return moves
+func (q *FifoQueue) length() int {
+	return len(q.queue)
 }
 
-// Calculate the change in elevation between two coordinates
-func getGrade(hm hmap.Heightmap, current, next *coord.Coord) int {
-	return hm.Get(next) - hm.Get(current)
+func (q *FifoQueue) enqueue(c coord.Coord) {
+	q.queue = append(q.queue, c)
 }
 
-func recurse(m *Map, current *coord.Coord, history []coord.Coord, moveCount int) int {
-	if coord.Equal(current, m.end) {
-		return moveCount
-	}
-	quickest := math.MaxInt
-	for _, move := range getMoves(m.hm, current) {
-		isRepeat := coord.Any(history, &move)
-		if getGrade(m.hm, current, &move) > 1 || isRepeat {
-			continue
-		}
-		pathLength := recurse(m, &move, append(history, move), moveCount+1)
-		if pathLength < quickest {
-			quickest = pathLength
+func (q *FifoQueue) dequeue() coord.Coord {
+	c := q.queue[0]
+	q.queue = q.queue[1:]
+	return c
+}
+
+func (q *FifoQueue) indexOf(c coord.Coord) int {
+	for i, el := range q.queue {
+		if coord.Equal(c, el) {
+			return i
 		}
 	}
-	return quickest
+	return -1
+}
+
+func (q *FifoQueue) contains(c coord.Coord) bool {
+	return q.indexOf(c) >= 0
 }
 
 func main() {
 	inputFile := parseArgs()
-	m := parseInput(inputFile)
-	current := m.start
-	history := []coord.Coord{*current}
-	quickestPath := recurse(m, current, history, 0)
-	fmt.Printf("The quickest path takes %v steps.\n", quickestPath)
+	hm, start, end := parseInput(inputFile)
+
+	visited := &FifoQueue{}
+	queue := &FifoQueue{}
+	depth := []int{}
+
+	queue.enqueue(start)
+	visited.enqueue(start)
+	depth = append(depth, 0)
+
+	for queue.length() > 0 {
+		current := queue.dequeue()
+		index := visited.indexOf(current)
+		currentDepth := depth[index]
+
+		// If current coord is the final destination...
+		if coord.Equal(current, end) {
+			fmt.Println(currentDepth)
+		}
+
+		for _, adj := range hm.Adjacent(current) {
+			if !hm.InBounds(adj) || visited.contains(adj) {
+				continue
+			}
+			if hm.IsTraversable(current, adj) {
+				queue.enqueue(adj)
+				visited.enqueue(adj)
+				depth = append(depth, currentDepth+1)
+			}
+		}
+	}
 }
