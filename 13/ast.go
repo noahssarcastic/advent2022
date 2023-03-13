@@ -1,7 +1,14 @@
 package main
 
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
+
 type Node interface {
 	Less(other Node) MaybeBool
+	String() string
 }
 
 type ListNode []Node
@@ -31,7 +38,14 @@ func (a ListNode) Less(b Node) MaybeBool {
 	default:
 		panic("Unsupported node type.")
 	}
+}
 
+func (l ListNode) String() string {
+	strs := make([]string, 0, len(l))
+	for i := range l {
+		strs = append(strs, l[i].String())
+	}
+	return fmt.Sprintf("[%s]", strings.Join(strs, ","))
 }
 
 type IntNode int
@@ -52,4 +66,8 @@ func (a IntNode) Less(b Node) MaybeBool {
 	default:
 		panic("Unsupported node type.")
 	}
+}
+
+func (i IntNode) String() string {
+	return strconv.Itoa(int(i))
 }
