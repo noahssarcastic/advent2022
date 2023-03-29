@@ -1,4 +1,4 @@
-package main
+package debug
 
 import (
 	"bufio"
@@ -8,11 +8,18 @@ import (
 
 type Canvas struct {
 	pixels [][]byte
-	w, h   int
 }
 
-func NewCanvas(w, h int) *Canvas {
-	canv := Canvas{w: w, h: h}
+func (canv *Canvas) Width() int {
+	return len(canv.pixels[0])
+}
+
+func (canv *Canvas) Height() int {
+	return len(canv.pixels)
+}
+
+func New(w, h int) *Canvas {
+	canv := Canvas{}
 	canv.pixels = make([][]byte, h)
 	for j := range canv.pixels {
 		canv.pixels[j] = make([]byte, w)
@@ -23,9 +30,9 @@ func NewCanvas(w, h int) *Canvas {
 	return &canv
 }
 
-func CopyCanvas(canv *Canvas) *Canvas {
-	newCanv := Canvas{w: canv.w, h: canv.h}
-	newCanv.pixels = make([][]byte, canv.h)
+func Copy(canv *Canvas) *Canvas {
+	newCanv := Canvas{}
+	newCanv.pixels = make([][]byte, canv.Height())
 	copy(newCanv.pixels, canv.pixels)
 	return &newCanv
 }
@@ -41,7 +48,7 @@ func CopyCanvas(canv *Canvas) *Canvas {
 // }
 
 func (canv *Canvas) Draw(x, y int, p byte) {
-	if x >= canv.w || y >= canv.h {
+	if x >= canv.Width() || y >= canv.Height() {
 		// canv.Resize()
 		// canv.Draw(x, y, p)
 		panic("must resize!")
@@ -53,6 +60,25 @@ func (canv *Canvas) Draw(x, y int, p byte) {
 type BBox struct {
 	x0, y0 int
 	x1, y1 int
+}
+
+func Bounds(x0, y0, x1, y1 int) *BBox {
+	return &BBox{x0, y0, x1, y1}
+}
+
+func (bb *BBox) Expand(x, y int) {
+	if x < bb.x0 {
+		bb.x0 = x
+	}
+	if x > bb.x1 {
+		bb.x1 = x
+	}
+	if y < bb.y0 {
+		bb.y0 = y
+	}
+	if y > bb.y1 {
+		bb.y1 = y
+	}
 }
 
 func (canv *Canvas) Print(bb BBox) {
