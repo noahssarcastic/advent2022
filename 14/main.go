@@ -26,6 +26,21 @@ type Line struct {
 	start, end Point
 }
 
+func (ln *Line) PointsAlong() (pts []Point) {
+	if ln.start.X == ln.end.X {
+		for i := min(ln.start.Y, ln.end.Y); i <= max(ln.start.Y, ln.end.Y); i++ {
+			pts = append(pts, Point{ln.start.X, i})
+		}
+	} else if ln.start.Y == ln.end.Y {
+		for i := min(ln.start.X, ln.end.X); i <= max(ln.start.X, ln.end.X); i++ {
+			pts = append(pts, Point{i, ln.start.Y})
+		}
+	} else {
+		panic(fmt.Errorf("line %v is not horizontal or vertical", ln))
+	}
+	return pts
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -97,7 +112,7 @@ func extents(sim *Simulation) *BBox {
 }
 
 func main() {
-	f, err := os.Open("input_final.txt")
+	f, err := os.Open("input.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -112,16 +127,32 @@ func main() {
 	}
 
 	sim := NewSimulation(lines)
+	bb := extents(sim)
+	canv := NewCanvas(600, 600)
+	drawRocks(sim, canv)
+	canv.Print(*bb)
+	Pause()
 	for tick := 0; tick < 10000; tick++ {
 		if err := move(sim); errors.Is(err, ErrCantMove) {
 			tick = 0
 			sim.Sand = append(sim.Sand, sim.Curr)
+			canv.Draw(sim.Curr.X, sim.Curr.Y, 'o')
+			canv.Print(*bb)
 			sim.ResetCurr()
+			Pause()
 		} else if err != nil {
 			panic(err)
 		}
 	}
 	fmt.Println(len(sim.Sand))
+}
+
+func drawRocks(sim *Simulation, canv *Canvas) {
+	for _, ln := range sim.Lines {
+		for _, pt := range ln.PointsAlong() {
+			canv.Draw(pt.X, pt.Y, '#')
+		}
+	}
 }
 
 var ErrCantMove = errors.New("sand blocked; can't move")

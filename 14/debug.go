@@ -14,8 +14,11 @@ type Canvas struct {
 func NewCanvas(w, h int) *Canvas {
 	canv := Canvas{w: w, h: h}
 	canv.pixels = make([][]byte, h)
-	for i := range canv.pixels {
-		canv.pixels[i] = make([]byte, w)
+	for j := range canv.pixels {
+		canv.pixels[j] = make([]byte, w)
+		for i := range canv.pixels[j] {
+			canv.pixels[j][i] = '.'
+		}
 	}
 	return &canv
 }
@@ -27,8 +30,24 @@ func CopyCanvas(canv *Canvas) *Canvas {
 	return &newCanv
 }
 
+// // TODO: fix
+// func (canv *Canvas) Resize() {
+// 	canv.pixels = append(canv.pixels, make([]byte, canv.h))
+// 	for i := 0; i < canv.h; i++ {
+// 		canv.pixels = append(canv.pixels, make([]byte, canv.w*2))
+// 	}
+// 	canv.h *= 2
+// 	canv.w *= 2
+// }
+
 func (canv *Canvas) Draw(x, y int, p byte) {
-	canv.pixels[y][x] = p
+	if x >= canv.w || y >= canv.h {
+		// canv.Resize()
+		// canv.Draw(x, y, p)
+		panic("must resize!")
+	} else {
+		canv.pixels[y][x] = p
+	}
 }
 
 type BBox struct {
