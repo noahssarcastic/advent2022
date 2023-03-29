@@ -20,21 +20,24 @@ type debugger struct {
 }
 
 func newDebugger(sim *simulation, debugMode int) *debugger {
-	d := debugger{mode: debugMode}
+	db := debugger{mode: debugMode}
 	if debugMode >= debugStandard {
 		fmt.Printf("Ground set at %v.\n", sim.ground)
-
-		d.bounds = *bounds(sim)
-		d.main = debug.NewCanvas(600, 600)
-		d.main.Draw(SAND_SPAWN.X(), SAND_SPAWN.Y(), '=')
-		drawRocks(sim, d.main)
+		db.bounds = *bounds(sim)
+		db.main = debug.NewCanvas(600, 600)
+		db.main.Draw(SAND_SPAWN.X(), SAND_SPAWN.Y(), '=')
+		db.drawRocks(sim)
+		db.drawGround(sim)
 		fmt.Println("Initial state:")
-		d.main.Print(d.bounds)
+		db.main.Print(db.bounds)
+	}
+	if debugMode >= debugCheckpoint {
+		debug.Pause()
 	}
 	if debugMode >= debugPaths {
-		d.path = d.main.Copy()
+		db.path = db.main.Copy()
 	}
-	return &d
+	return &db
 }
 
 func bounds(sim *simulation) *debug.BBox {
@@ -47,14 +50,23 @@ func bounds(sim *simulation) *debug.BBox {
 			bb.Expand(pt.X(), pt.Y())
 		}
 	}
+	bb.Expand(bb.XMax(), bb.YMax()+2)
+	bb.Expand(bb.XMax()+(bb.YMax()-bb.YMin()), bb.YMax())
+	bb.Expand(bb.XMin()-(bb.YMax()-bb.YMin()), bb.YMax())
 	return bb
 }
 
-func drawRocks(sim *simulation, canv *debug.Canvas) {
+func (db *debugger) drawRocks(sim *simulation) {
 	for _, ln := range sim.lines {
 		for _, pt := range ln.Along() {
-			canv.Draw(pt.X(), pt.Y(), '#')
+			db.main.Draw(pt.X(), pt.Y(), '#')
 		}
+	}
+}
+
+func (db *debugger) drawGround(sim *simulation) {
+	for i := db.bounds.XMin(); i <= db.bounds.XMax(); i++ {
+		db.main.Draw(i, sim.ground, '#')
 	}
 }
 

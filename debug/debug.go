@@ -39,15 +39,17 @@ func (canv *Canvas) Copy() *Canvas {
 	return &newCanv
 }
 
-// // TODO: fix
-// func (canv *Canvas) Resize() {
-// 	canv.pixels = append(canv.pixels, make([]byte, canv.h))
-// 	for i := 0; i < canv.h; i++ {
-// 		canv.pixels = append(canv.pixels, make([]byte, canv.w*2))
-// 	}
-// 	canv.h *= 2
-// 	canv.w *= 2
-// }
+func (canv *Canvas) Resize(newWidth, newHeight int) {
+	oldHeight := canv.Height()
+	oldWidth := canv.Width()
+	canv.pixels = append(canv.pixels, make([][]byte, newHeight-oldHeight)...)
+	for j := range canv.pixels {
+		canv.pixels[j] = append(canv.pixels[j], make([]byte, newWidth-oldWidth)...)
+		for i := range canv.pixels[j][oldWidth:] {
+			canv.pixels[j][oldWidth+i] = '.'
+		}
+	}
+}
 
 func (canv *Canvas) Draw(x, y int, p byte) {
 	if x >= canv.Width() || y >= canv.Height() {
@@ -66,6 +68,19 @@ type BBox struct {
 
 func Bounds(x0, y0, x1, y1 int) *BBox {
 	return &BBox{x0, y0, x1, y1}
+}
+
+func (bb *BBox) XMin() int {
+	return bb.x0
+}
+func (bb *BBox) XMax() int {
+	return bb.x1
+}
+func (bb *BBox) YMin() int {
+	return bb.y0
+}
+func (bb *BBox) YMax() int {
+	return bb.y1
 }
 
 func (bb *BBox) Expand(x, y int) {
