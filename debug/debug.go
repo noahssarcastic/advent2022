@@ -18,7 +18,7 @@ func (canv *Canvas) Height() int {
 	return len(canv.pixels)
 }
 
-func New(w, h int) *Canvas {
+func NewCanvas(w, h int) *Canvas {
 	canv := Canvas{}
 	canv.pixels = make([][]byte, h)
 	for j := range canv.pixels {
@@ -30,10 +30,12 @@ func New(w, h int) *Canvas {
 	return &canv
 }
 
-func Copy(canv *Canvas) *Canvas {
-	newCanv := Canvas{}
-	newCanv.pixels = make([][]byte, canv.Height())
-	copy(newCanv.pixels, canv.pixels)
+func (canv *Canvas) Copy() *Canvas {
+	newCanv := Canvas{make([][]byte, canv.Height())}
+	for i := range canv.pixels {
+		newCanv.pixels[i] = make([]byte, canv.Width())
+		copy(newCanv.pixels[i], canv.pixels[i])
+	}
 	return &newCanv
 }
 

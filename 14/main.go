@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 
@@ -20,6 +21,9 @@ type simulation struct {
 }
 
 func main() {
+	debugMode := flag.Bool("debug", false, "a bool")
+	flag.Parse()
+
 	f, err := os.Open("input.txt")
 	if err != nil {
 		panic(err)
@@ -33,25 +37,26 @@ func main() {
 	if scanner.Err() != nil {
 		panic(err)
 	}
-
 	sim := simulation{lines: lines, curr: SAND_SPAWN}
 
-	debugMode := true
 	var bb *debug.BBox
 	var canv *debug.Canvas
-	if debugMode {
+	var pathCanv *debug.Canvas
+	if *debugMode {
 		bb = extents(&sim)
-		canv = debug.New(600, 600)
+		canv = debug.NewCanvas(600, 600)
 		canv.Draw(SAND_SPAWN.X(), SAND_SPAWN.Y(), '=')
 		drawRocks(&sim, canv)
+		pathCanv = canv.Copy()
 		canv.Print(*bb)
 		debug.Pause()
 	}
 
 	for tick := 0; tick < 10000; tick++ {
 		if err := move(&sim); errors.Is(err, ErrCantMove) {
-			if debugMode {
+			if *debugMode {
 				canv.Draw(sim.curr.X(), sim.curr.Y(), 'o')
+				pathCanv = canv.Copy()
 				canv.Print(*bb)
 				debug.Pause()
 			}
@@ -60,6 +65,11 @@ func main() {
 			tick = 0
 		} else if err != nil {
 			panic(err)
+		}
+		if *debugMode {
+			pathCanv.Draw(sim.curr.X(), sim.curr.Y(), '~')
+			pathCanv.Print(*bb)
+			debug.Pause()
 		}
 	}
 	fmt.Printf("There are %d grains of sand.\n", len(sim.sand))
