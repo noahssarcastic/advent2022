@@ -24,7 +24,8 @@ func newDebugger(sim *simulation, debugMode int) *debugger {
 	if debugMode >= debugStandard {
 		fmt.Printf("Ground set at %v.\n", sim.ground)
 		db.bounds = *bounds(sim)
-		db.main = debug.NewCanvas(600, 600)
+		// TODO: don't hard code
+		db.main = debug.NewCanvas(1000, 1000)
 		db.main.Draw(SAND_SPAWN.X(), SAND_SPAWN.Y(), '=')
 		db.drawRocks(sim)
 		db.drawGround(sim)
@@ -51,8 +52,8 @@ func bounds(sim *simulation) *debug.BBox {
 		}
 	}
 	bb.Expand(bb.XMax(), bb.YMax()+2)
-	bb.Expand(bb.XMax()+(bb.YMax()-bb.YMin()), bb.YMax())
-	bb.Expand(bb.XMin()-(bb.YMax()-bb.YMin()), bb.YMax())
+	// bb.Expand(bb.XMax()+(bb.YMax()-bb.YMin()), bb.YMax())
+	// bb.Expand(bb.XMin()-(bb.YMax()-bb.YMin()), bb.YMax())
 	return bb
 }
 
@@ -80,6 +81,7 @@ func (db *debugger) step(sim *simulation) {
 
 func (db *debugger) placeSand(sim *simulation) {
 	if db.mode >= debugStandard {
+		db.bounds.Expand(sim.curr.X(), sim.curr.Y())
 		db.main.Draw(sim.curr.X(), sim.curr.Y(), 'o')
 	}
 	if db.mode >= debugCheckpoint {
