@@ -19,14 +19,22 @@ type debugger struct {
 	path   *debug.Canvas
 }
 
-func newDebugger(sim *simulation, debugMode int) *debugger {
+func newDebugger(sim *simulation) *debugger {
+	debugMode := -1
+	if *v2 {
+		debugMode = debugPaths
+	} else if *v1 {
+		debugMode = debugCheckpoint
+	} else if *v0 {
+		debugMode = debugStandard
+	}
 	db := debugger{mode: debugMode}
 	if debugMode >= debugStandard {
 		fmt.Printf("Ground set at %v.\n", sim.ground)
 		db.bounds = *bounds(sim)
 		// TODO: don't hard code
 		db.main = debug.NewCanvas(1000, 1000)
-		db.main.Draw(SAND_SPAWN.X(), SAND_SPAWN.Y(), '=')
+		db.main.Draw(SandSpawn.X(), SandSpawn.Y(), '=')
 		db.drawRocks(sim)
 		db.drawGround(sim)
 		fmt.Println("Initial state:")
@@ -43,8 +51,8 @@ func newDebugger(sim *simulation, debugMode int) *debugger {
 
 func bounds(sim *simulation) *debug.BBox {
 	bb := debug.Bounds(
-		SAND_SPAWN.X(), SAND_SPAWN.Y(),
-		SAND_SPAWN.X(), SAND_SPAWN.Y(),
+		SandSpawn.X(), SandSpawn.Y(),
+		SandSpawn.X(), SandSpawn.Y(),
 	)
 	for _, ln := range sim.lines {
 		for _, pt := range ln.Endpoints() {
@@ -52,8 +60,6 @@ func bounds(sim *simulation) *debug.BBox {
 		}
 	}
 	bb.Expand(bb.XMax(), bb.YMax()+2)
-	// bb.Expand(bb.XMax()+(bb.YMax()-bb.YMin()), bb.YMax())
-	// bb.Expand(bb.XMin()-(bb.YMax()-bb.YMin()), bb.YMax())
 	return bb
 }
 
@@ -82,6 +88,7 @@ func (db *debugger) step(sim *simulation) {
 func (db *debugger) placeSand(sim *simulation) {
 	if db.mode >= debugStandard {
 		db.bounds.Expand(sim.curr.X(), sim.curr.Y())
+		db.drawGround(sim)
 		db.main.Draw(sim.curr.X(), sim.curr.Y(), 'o')
 	}
 	if db.mode >= debugCheckpoint {
