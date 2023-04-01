@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"regexp"
 	"runtime/pprof"
@@ -48,8 +47,8 @@ func main() {
 	ss := make([]sensor, 0)
 	for scanner.Scan() {
 		match := re.FindAllStringSubmatch(scanner.Text(), 1)
-		s := pointFromSlice(match[0][1:3])
-		b := pointFromSlice(match[0][3:5])
+		s := fromSlice(match[0][1:3])
+		b := fromSlice(match[0][3:5])
 		ss = append(ss, sensor{s, manhattan(s, b)})
 	}
 	if err = scanner.Err(); err != nil {
@@ -57,41 +56,48 @@ func main() {
 	}
 
 	start := time.Now()
-	var pt point
-	for y := 0; y <= MaxCoord; y++ {
-		for x := 0; x <= MaxCoord; x++ {
-			pt = point{float64(x), float64(y)}
-			inRange := false
-			for _, s := range ss {
-				if manhattan(pt, s.loc) <= s.d {
-					inRange = true
-					break
-				}
+	for i, s := range ss {
+		fmt.Printf("sensor %d (%v)\n", i, time.Since(start))
+		pts := perimeter(s.loc, s.d+1)
+		for _, pt := range pts {
+			if pt.x < 0 || pt.x > MaxCoord || pt.y < 0 || pt.y > MaxCoord {
+				continue
 			}
-			if !inRange {
+			if !inRange(ss, pt) {
 				fmt.Println(tuningFreq(pt))
 				return
 			}
 		}
-		if y > 0 && y%1000 == 0 {
-			fmt.Printf("Finished row %d (%v)\n", y, time.Since(start))
-			return
+	}
+}
+
+func inRange(sensors []sensor, pt point) bool {
+	for _, s := range sensors {
+		d := manhattan(pt, s.loc)
+		inRange := d <= s.d
+		if inRange {
+			return true
 		}
 	}
+	return false
 }
 
 type sensor struct {
 	loc point
-	d   float64
+	d   int
 }
 
 // Point
 
 type point struct {
-	x, y float64
+	x, y int
 }
 
-func pointFromSlice(ss []string) point {
+func equal(a, b point) bool {
+	return a.x == b.x && a.y == b.y
+}
+
+func fromSlice(ss []string) point {
 	x, err := strconv.Atoi(ss[0])
 	if err != nil {
 		panic(err)
@@ -100,15 +106,54 @@ func pointFromSlice(ss []string) point {
 	if err != nil {
 		panic(err)
 	}
-	return point{float64(x), float64(y)}
+	return point{x, y}
 }
 
 // Utils
 
-func manhattan(a, b point) float64 {
-	return math.Abs(a.x-b.x) + math.Abs(a.y-b.y)
+func absDiff(x, y int) int {
+	if x < y {
+		return y - x
+	}
+	return x - y
 }
 
-func tuningFreq(pt point) float64 {
+func manhattan(a, b point) int {
+	return absDiff(a.x, b.x) + absDiff(a.y, b.y)
+}
+
+func tuningFreq(pt point) int {
 	return pt.x*4000000 + pt.y
+}
+
+func perimeter(origin point, rad int) (pts []point) {
+	// perimeter walk clock-wise
+	var (
+		up    = point{origin.x, origin.y + rad}
+		right = point{origin.x + rad, origin.y}
+		down  = point{origin.x, origin.y - rad}
+		left  = point{origin.x - rad, origin.y}
+	)
+	var pt = up
+	for !equal(pt, right) {
+		pts = append(pts, pt)
+		pt.x++
+		pt.y--
+	}
+	for !equal(pt, down) {
+		pts = append(pts, pt)
+		pt.x--
+		pt.y--
+	}
+	for !equal(pt, left) {
+		pts = append(pts, pt)
+		pt.x--
+		pt.y++
+	}
+	for !equal(pt, up) {
+		pts = append(pts, pt)
+		pt.x++
+		pt.y++
+	}
+	return pts
 }
