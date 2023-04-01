@@ -4,20 +4,30 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"log"
 	"math"
 	"os"
 	"regexp"
+	"runtime/pprof"
 	"strconv"
-
-	"golang.org/x/exp/slices"
+	"time"
 )
 
 var input = flag.String("f", "input.txt", "input file")
+var cpuprofile = flag.String("profile", "", "write cpu profile to file")
 
 var MaxCoord = 4000000
 
 func main() {
 	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	re, err := regexp.Compile(`Sensor at x=(-?\d+), y=(-?\d+): closest beacon is at x=(-?\d+), y=(-?\d+)`)
 	if err != nil {
@@ -35,68 +45,50 @@ func main() {
 		}
 	}()
 	scanner := bufio.NewScanner(f)
-	var (
-		sensors = make([]point, 0)
-		beacons = make([]point, 0)
-		ranges  = make([]int, 0)
-	)
+	ss := make([]sensor, 0)
 	for scanner.Scan() {
-		line := scanner.Text()
-		match := re.FindAllStringSubmatch(line, 1)
-		sensor := pointFromSlice(match[0][1:3])
-		beacon := pointFromSlice(match[0][3:5])
-		sensors = append(sensors, sensor)
-		beacons = append(beacons, beacon)
-		ranges = append(ranges, manhattan(sensor, beacon))
+		match := re.FindAllStringSubmatch(scanner.Text(), 1)
+		s := pointFromSlice(match[0][1:3])
+		b := pointFromSlice(match[0][3:5])
+		ss = append(ss, sensor{s, manhattan(s, b)})
 	}
 	if err = scanner.Err(); err != nil {
 		panic(err)
 	}
-	fmt.Println(tuningFreq(*findSignal(beacons, sensors, ranges)))
-}
 
-func findSignal(beacons, sensors []point, ranges []int) *point {
-	for y := 0; y < MaxCoord; y++ {
-		for x := 0; x < MaxCoord; x++ {
-			pt := point{x, y}
-			if isSignal(beacons, sensors, ranges, pt) {
-				return &pt
+	start := time.Now()
+	var pt point
+	for y := 0; y <= MaxCoord; y++ {
+		for x := 0; x <= MaxCoord; x++ {
+			pt = point{float64(x), float64(y)}
+			inRange := false
+			for _, s := range ss {
+				if manhattan(pt, s.loc) <= s.d {
+					inRange = true
+					break
+				}
+			}
+			if !inRange {
+				fmt.Println(tuningFreq(pt))
+				return
 			}
 		}
-	}
-	return nil
-}
-
-func isSignal(beacons, sensors []point, ranges []int, pt point) bool {
-	return !isBeacon(beacons, pt) && !inRange(sensors, ranges, pt)
-}
-
-func isBeacon(beacons []point, pt point) bool {
-	idx := slices.IndexFunc(beacons, func(i point) bool {
-		return equal(pt, i)
-	})
-	return idx > 0
-}
-
-func inRange(sensors []point, ranges []int, pt point) bool {
-	for i, s := range sensors {
-		d := manhattan(pt, s)
-		inRange := d <= ranges[i]
-		if inRange {
-			return true
+		if y > 0 && y%1000 == 0 {
+			fmt.Printf("Finished row %d (%v)\n", y, time.Since(start))
+			return
 		}
 	}
-	return false
+}
+
+type sensor struct {
+	loc point
+	d   float64
 }
 
 // Point
 
 type point struct {
-	x, y int
-}
-
-func equal(a, b point) bool {
-	return a.x == b.x && a.y == b.y
+	x, y float64
 }
 
 func pointFromSlice(ss []string) point {
@@ -108,19 +100,15 @@ func pointFromSlice(ss []string) point {
 	if err != nil {
 		panic(err)
 	}
-	return point{x, y}
+	return point{float64(x), float64(y)}
 }
 
 // Utils
 
-func abs(i int) int {
-	return int(math.Abs(float64(i)))
+func manhattan(a, b point) float64 {
+	return math.Abs(a.x-b.x) + math.Abs(a.y-b.y)
 }
 
-func manhattan(a, b point) int {
-	return abs(a.x-b.x) + abs(a.y-b.y)
-}
-
-func tuningFreq(pt point) int {
+func tuningFreq(pt point) float64 {
 	return pt.x*4000000 + pt.y
 }
