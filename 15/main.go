@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"flag"
 	"fmt"
 	"math"
@@ -15,7 +14,7 @@ import (
 
 var input = flag.String("f", "input.txt", "input file")
 
-var MagicRow = 2000000
+var MaxCoord = 4000000
 
 func main() {
 	flag.Parse()
@@ -53,45 +52,23 @@ func main() {
 	if err = scanner.Err(); err != nil {
 		panic(err)
 	}
-
-	count := 0
-	for x, inBounds := 0, true; inBounds; x++ {
-		pt := point{x, MagicRow}
-		not, err := notSignal(beacons, sensors, ranges, pt)
-		if errors.Is(err, ErrOutOfBounds) {
-			break
-		} else if err != nil {
-			panic(err)
-		}
-		if not {
-			count++
-		}
-	}
-	for x, inBounds := -1, true; inBounds; x-- {
-		pt := point{x, MagicRow}
-		not, err := notSignal(beacons, sensors, ranges, pt)
-		if errors.Is(err, ErrOutOfBounds) {
-			break
-		} else if err != nil {
-			panic(err)
-		}
-		if not {
-			count++
-		}
-	}
-	fmt.Println(count)
+	fmt.Println(tuningFreq(*findSignal(beacons, sensors, ranges)))
 }
 
-var ErrOutOfBounds = errors.New("out of bounds")
-
-func notSignal(beacons, sensors []point, ranges []int, pt point) (bool, error) {
-	if isBeacon(beacons, pt) {
-		return false, nil
-	} else if inRange(sensors, ranges, pt) {
-		return true, nil
-	} else {
-		return false, ErrOutOfBounds
+func findSignal(beacons, sensors []point, ranges []int) *point {
+	for y := 0; y < MaxCoord; y++ {
+		for x := 0; x < MaxCoord; x++ {
+			pt := point{x, y}
+			if isSignal(beacons, sensors, ranges, pt) {
+				return &pt
+			}
+		}
 	}
+	return nil
+}
+
+func isSignal(beacons, sensors []point, ranges []int, pt point) bool {
+	return !isBeacon(beacons, pt) && !inRange(sensors, ranges, pt)
 }
 
 func isBeacon(beacons []point, pt point) bool {
@@ -111,6 +88,8 @@ func inRange(sensors []point, ranges []int, pt point) bool {
 	}
 	return false
 }
+
+// Point
 
 type point struct {
 	x, y int
@@ -132,10 +111,16 @@ func pointFromSlice(ss []string) point {
 	return point{x, y}
 }
 
+// Utils
+
 func abs(i int) int {
 	return int(math.Abs(float64(i)))
 }
 
 func manhattan(a, b point) int {
 	return abs(a.x-b.x) + abs(a.y-b.y)
+}
+
+func tuningFreq(pt point) int {
+	return pt.x*4000000 + pt.y
 }
