@@ -1,5 +1,7 @@
 go.work
 *.prof
 
+*.exe
+
 .vscode/*
 !.vscode/settings.json
